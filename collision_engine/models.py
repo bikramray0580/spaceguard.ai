@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from dataclasses import asdict, dataclass
+from dataclasses import asdict, dataclass, field
 from datetime import datetime, timezone
 from math import isfinite
 from typing import Any
@@ -76,6 +76,7 @@ class ConjunctionEvent:
     relative_velocity_km_s: float
     risk_level: str
     risk_reason: str
+    risk_explanation: dict[str, Any] = field(default_factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
         """Return a JSON-serializable event representation."""

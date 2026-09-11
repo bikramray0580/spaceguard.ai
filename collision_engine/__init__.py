@@ -9,6 +9,7 @@ from .distance import (
 )
 from .models import ConjunctionEvent, OrbitalState, Vector3
 from .risk import HIGH_MISS_DISTANCE_KM, MEDIUM_MISS_DISTANCE_KM, classify_risk
+from .risk_explanation import build_risk_explanation, explain_miss_distance, explain_relative_velocity, explain_time_to_tca
 
 __all__ = [
     "ConjunctionEvent",
@@ -17,6 +18,10 @@ __all__ = [
     "OrbitalState",
     "Vector3",
     "classify_risk",
+    "build_risk_explanation",
+    "explain_miss_distance",
+    "explain_relative_velocity",
+    "explain_time_to_tca",
     "find_closest_approach",
     "relative_position_km",
     "relative_velocity_km_s",

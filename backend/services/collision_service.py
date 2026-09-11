@@ -26,7 +26,7 @@ def screen_conjunction(
     results_b = propagate_tle(object_b.name, object_b.line1, object_b.line2, timestamps)
     states_a = [OrbitalState.from_propagation_result(result) for result in results_a]
     states_b = [OrbitalState.from_propagation_result(result) for result in results_b]
-    event = find_closest_approach(states_a, states_b)
+    event = find_closest_approach(states_a, states_b, analysis_time=timestamps[0])
     data = event.to_dict()
     data["object_a"] = object_a.object_id
     data["object_b"] = object_b.object_id

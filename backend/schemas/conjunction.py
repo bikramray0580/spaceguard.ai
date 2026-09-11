@@ -22,6 +22,19 @@ class MLPrediction(BaseModel):
     risk_probability: float
     risk_score: int
     risk_category: str
+
+
+class RiskFactor(BaseModel):
+    name: str
+    value: str
+    severity: str
+    reason: str
+
+
+class RiskExplanation(BaseModel):
+    summary: str
+    factors: list[RiskFactor]
+    primary_risk_drivers: list[str]
  
  
 class ConjunctionResponse(BaseModel):
@@ -32,4 +45,5 @@ class ConjunctionResponse(BaseModel):
     relative_velocity_km_s: float
     risk_level: str
     risk_reason: str
+    risk_explanation: RiskExplanation
     ml_prediction: MLPrediction

@@ -3,10 +3,12 @@
 from __future__ import annotations
 
 from collections.abc import Sequence
+from datetime import datetime
 
 from .distance import relative_velocity_magnitude_km_s, separation_distance_km
 from .models import ConjunctionEvent, OrbitalState
-from .risk import classify_risk, explain_risk
+from .risk import classify_risk
+from .risk_explanation import build_risk_explanation
 
 
 def _validate_series(states: Sequence[OrbitalState], label: str) -> None:
@@ -26,13 +28,18 @@ def _validate_series(states: Sequence[OrbitalState], label: str) -> None:
 
 
 def find_closest_approach(
-    states_a: Sequence[OrbitalState], states_b: Sequence[OrbitalState]
+    states_a: Sequence[OrbitalState],
+    states_b: Sequence[OrbitalState],
+    *,
+    analysis_time: datetime | None = None,
 ) -> ConjunctionEvent:
     """Find the smallest separation among matching, sampled future states.
 
     Each series must contain samples for exactly the same, strictly increasing
     timestamps in the same coordinate frame. The method reports the closest
-    *sampled* approach; it does not interpolate between samples.
+    *sampled* approach; it does not interpolate between samples. ``analysis_time``
+    supplies the reference for time-to-TCA; when omitted, the first sample is
+    used as the shared-grid analysis start.
     """
     _validate_series(states_a, "object A")
     _validate_series(states_b, "object B")
@@ -50,8 +57,22 @@ def find_closest_approach(
             closest_a, closest_b, minimum_distance = state_a, state_b, distance
 
     assert closest_a is not None and closest_b is not None and minimum_distance is not None
+    if analysis_time is None:
+        # The first shared sample is the pipeline's reliable analysis start.
+        analysis_time = states_a[0].timestamp
+    if not isinstance(analysis_time, datetime):
+        raise TypeError("analysis_time must be a datetime or None")
+    if analysis_time.tzinfo is None or analysis_time.utcoffset() is None:
+        raise ValueError("analysis_time must be timezone-aware")
+
     relative_velocity = relative_velocity_magnitude_km_s(closest_a, closest_b)
     risk_level = classify_risk(minimum_distance)
+    risk_explanation = build_risk_explanation(
+        risk_level,
+        minimum_distance,
+        relative_velocity,
+        closest_a.timestamp - analysis_time,
+    )
     return ConjunctionEvent(
         object_a=closest_a.object_id,
         object_b=closest_b.object_id,
@@ -59,5 +80,7 @@ def find_closest_approach(
         miss_distance_km=minimum_distance,
         relative_velocity_km_s=relative_velocity,
         risk_level=risk_level,
-        risk_reason=explain_risk(risk_level, minimum_distance, relative_velocity),
+        # Retain the legacy string field for existing callers.
+        risk_reason=risk_explanation["summary"],
+        risk_explanation=risk_explanation,
     )

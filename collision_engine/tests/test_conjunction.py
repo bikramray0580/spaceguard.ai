@@ -22,6 +22,8 @@ class ConjunctionTests(unittest.TestCase):
         self.assertEqual(event.time_of_closest_approach, TIME + timedelta(minutes=1))
         self.assertEqual(event.miss_distance_km, 0.5)
         self.assertEqual(event.risk_level, "HIGH")
+        self.assertEqual(event.risk_explanation["factors"][0]["severity"], "VERY HIGH")
+        self.assertEqual(event.risk_explanation["factors"][2]["value"], "1 min")
 
     def test_closest_approach_at_beginning_and_end(self) -> None:
         a = [make_state("A", minute, 0) for minute in range(3)]
