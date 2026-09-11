@@ -145,23 +145,13 @@ def save_json(objects):
 def refresh_snapshot(force=False):
     """Refresh orbital data when the local snapshot is stale.
 
-    SpaceGuard checks at most once per two-hour CelesTrak GP update window.
-    A failed refresh never destroys the last validated snapshot, so the
-    application can continue operating with the most recent saved data.
-
-    Set force=True for an explicit manual refresh attempt.
-    Returns True when fresh data was saved, False when the existing snapshot
-    is used instead.
+    A failed refresh is handled silently when a validated DB/snapshot
+    fallback exists. The integration pipeline can continue from SQLite.
     """
     age = snapshot_age()
     if not force and age is not None and age < REFRESH_INTERVAL:
-        print(
-            f"CelesTrak snapshot is {age} old; using current cached data "
-            "(refresh window is 2 hours)."
-        )
         return False
 
-    print("Checking CelesTrak for a new orbital-data update...")
     try:
         raw_data = fetch_tle_data()
         objects = parse_tle_data(raw_data)
@@ -171,16 +161,9 @@ def refresh_snapshot(force=False):
         print(f"Fresh CelesTrak data loaded: {len(objects)} current objects.")
         return True
     except HTTPError as error:
-        if error.code in (403, 404):
-            print(
-                f"CelesTrak returned HTTP {error.code}; stopping refresh attempts "
-                "and keeping the latest saved snapshot."
-            )
-        else:
-            print(f"CelesTrak returned HTTP {error.code}; using the latest snapshot.")
         if not OUTPUT_FILE.exists():
             raise RuntimeError(
-                "CelesTrak refresh failed and no orbital_data.json fallback exists"
+                f"CelesTrak refresh failed (HTTP {error.code}) and no fallback exists"
             ) from error
         return False
     except (URLError, TimeoutError, OSError, RuntimeError, ValueError) as error:
@@ -188,14 +171,12 @@ def refresh_snapshot(force=False):
             raise RuntimeError(
                 "CelesTrak refresh failed and no orbital_data.json fallback exists"
             ) from error
-        print(f"CelesTrak refresh failed: {error}")
-        print("Using the latest saved orbital_data.json snapshot instead.")
         return False
 
 
 def main():
     if not refresh_snapshot(force=True):
-        print("Data ingestion completed using the latest available snapshot.")
+        print("Data ingestion completed using the latest available data.")
     else:
         print("Data ingestion completed using fresh CelesTrak data.")
 
