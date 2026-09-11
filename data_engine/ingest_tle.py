@@ -5,9 +5,8 @@ from pathlib import Path
 from urllib.request import Request, urlopen
 
 #change(2)-> added validation
-from validation import validate_tle_pair
-
-from database import (
+from .validation import validate_tle_pair
+from .database import (
     create_tables,
     insert_orbital_object
 )
