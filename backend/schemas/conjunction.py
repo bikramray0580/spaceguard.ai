@@ -35,6 +35,8 @@ class RiskExplanation(BaseModel):
     summary: str
     factors: list[RiskFactor]
     primary_risk_drivers: list[str]
+    urgency: str
+    operator_action: str
  
  
 class ConjunctionResponse(BaseModel):
