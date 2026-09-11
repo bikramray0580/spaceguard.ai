@@ -16,6 +16,8 @@ RISK_PRESENTATION = {
     "HIGH": "🔴 HIGH RISK",
 }
 
+DISPLAY_LIMIT = 10
+
 
 def _format_timestamp(timestamp: datetime, *, include_at: bool = False) -> str:
     """Format an existing aware timestamp in a portable, UTC-only display form."""
@@ -78,13 +80,30 @@ def _format_pair(event: ConjunctionEvent) -> str:
     )
 
 
-def render_safety_report(run: PipelineRun) -> str:
-    """Return a human-readable report from existing pipeline results.
+def _events_for_display(run: PipelineRun) -> tuple[ConjunctionEvent, ...]:
+    """Select a small, useful set for the human-facing report.
 
-    This function is presentation-only: it performs no propagation, conjunction
-    search, risk classification, or numerical recalculation.
+    The pipeline still analyzes every pair. The report shows every MEDIUM/HIGH
+    event plus the closest LOW-risk pairs, capped at DISPLAY_LIMIT overall.
     """
+    priority = {"HIGH": 0, "MEDIUM": 1, "LOW": 2}
+    relevant = [event for event in run.conjunctions if event.risk_level in {"HIGH", "MEDIUM"}]
+    relevant.sort(key=lambda event: (priority.get(event.risk_level, 9), event.miss_distance_km))
+
+    if len(relevant) < DISPLAY_LIMIT:
+        low_events = sorted(
+            (event for event in run.conjunctions if event.risk_level == "LOW"),
+            key=lambda event: event.miss_distance_km,
+        )
+        relevant.extend(low_events[: DISPLAY_LIMIT - len(relevant)])
+
+    return tuple(relevant[:DISPLAY_LIMIT])
+
+
+def render_safety_report(run: PipelineRun) -> str:
+    """Return a concise human-readable report from existing pipeline results."""
     risk_counts = Counter(event.risk_level for event in run.conjunctions)
+    display_events = _events_for_display(run)
     divider = "=" * 50
     section_divider = "-" * 50
     lines = [
@@ -107,19 +126,20 @@ def render_safety_report(run: PipelineRun) -> str:
         f"🔴 HIGH RISK      {risk_counts['HIGH']}",
         "",
         section_divider,
-        "PAIR ANALYSIS",
+        f"CLOSEST / RELEVANT PAIRS (showing {len(display_events)} of {len(run.conjunctions)})",
         section_divider,
         "",
     ]
-    for index, event in enumerate(run.conjunctions):
+    for index, event in enumerate(display_events):
         lines.append(_format_pair(event))
-        if index != len(run.conjunctions) - 1:
+        if index != len(display_events) - 1:
             lines.extend(("", section_divider, ""))
     return "\n".join(lines)
 
 
 def render_debug_report(run: PipelineRun) -> str:
-    """Return the previous compact diagnostic output as an alternate mode."""
+    """Return compact diagnostics while limiting displayed pair details."""
+    display_events = _events_for_display(run)
     lines = [
         "SPACEGUARD A -> B -> C PIPELINE",
         f"Snapshot source: {run.source}",
@@ -128,8 +148,9 @@ def render_debug_report(run: PipelineRun) -> str:
         f"Objects propagated: {len(run.object_ids)} ({', '.join(run.object_ids)})",
         f"Pairs analyzed: {run.pair_count}",
         f"Satellite pairs screened: {run.pair_count}",
+        f"Pairs displayed: {len(display_events)}",
     ]
-    for event in run.conjunctions:
+    for event in display_events:
         lines.extend(
             (
                 "",
