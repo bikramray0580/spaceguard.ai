@@ -1,11 +1,12 @@
-"""Run the SpaceGuard A -> B -> C pipeline with live-first data refresh.
+"""Run the SpaceGuard pipeline using the latest persistent orbital records.
 
 Run from the project root with:
     python -m integration.demo_pipeline
 
-The demo checks the CelesTrak refresh window, downloads fresh orbital data
-when the saved snapshot is stale, and falls back to the latest validated
-snapshot if the network is unavailable.
+The demo first attempts a CelesTrak refresh. Regardless of whether that
+network request succeeds, the integration analysis reads the newest validated
+TLE records from SQLite. JSON remains available as an explicit offline
+fallback when the database has no records.
 """
 
 import argparse
@@ -13,7 +14,11 @@ from pathlib import Path
 
 from data_engine.ingest_tle import refresh_snapshot
 
-from .pipeline import load_orbital_data, run_pipeline
+from .pipeline import (
+    load_orbital_data,
+    run_pipeline,
+    run_pipeline_from_database,
+)
 from .reporting import render_debug_report, render_safety_report
 
 
@@ -22,9 +27,9 @@ OBJECT_LIMIT = 100
 
 
 def main() -> None:
-    """Run a bounded real-data analysis after refreshing orbital data."""
+    """Run a bounded real-data analysis from the latest database records."""
     parser = argparse.ArgumentParser(
-        description="Run the SpaceGuard A -> B -> C demo with current CelesTrak data."
+        description="Run the SpaceGuard A -> B -> C demo with current orbital data."
     )
     parser.add_argument(
         "--debug",
@@ -34,7 +39,7 @@ def main() -> None:
     parser.add_argument(
         "--offline",
         action="store_true",
-        help="skip CelesTrak and use the latest saved orbital_data.json snapshot",
+        help="skip CelesTrak and use the latest available database records",
     )
     parser.add_argument(
         "--force-refresh",
@@ -44,24 +49,43 @@ def main() -> None:
     args = parser.parse_args()
 
     if args.offline:
-        print("Offline mode: using the latest saved orbital_data.json snapshot.")
+        print("Offline mode: skipping CelesTrak refresh and using the latest database records.")
     else:
         refresh_snapshot(force=args.force_refresh)
 
-    snapshot = load_orbital_data(DATA_PATH)
-    available_objects = len(snapshot.objects)
-    max_objects = min(OBJECT_LIMIT, available_objects)
+    try:
+        from data_engine.database import get_latest_orbital_data
 
-    print(f"Objects available for analysis: {available_objects}")
-    print(f"Objects selected for analysis: {max_objects}")
+        database_rows = get_latest_orbital_data()
+    except Exception as error:
+        database_rows = []
+        print(f"Database read failed: {error}")
 
-    run = run_pipeline(
-        DATA_PATH,
-        start_time=snapshot.fetched_at,
-        duration_minutes=30,
-        step_seconds=300,
-        max_objects=max_objects,
-    )
+    if database_rows:
+        available_objects = len(database_rows)
+        max_objects = min(OBJECT_LIMIT, available_objects)
+        print(f"Orbital source: SQLite latest records ({available_objects} objects)")
+        print(f"Objects selected for analysis: {max_objects}")
+        run = run_pipeline_from_database(
+            duration_minutes=30,
+            step_seconds=300,
+            max_objects=max_objects,
+        )
+    else:
+        print("SQLite has no orbital records; falling back to orbital_data.json.")
+        snapshot = load_orbital_data(DATA_PATH)
+        available_objects = len(snapshot.objects)
+        max_objects = min(OBJECT_LIMIT, available_objects)
+        print(f"Orbital source: JSON snapshot ({available_objects} objects)")
+        print(f"Objects selected for analysis: {max_objects}")
+        run = run_pipeline(
+            DATA_PATH,
+            start_time=snapshot.fetched_at,
+            duration_minutes=30,
+            step_seconds=300,
+            max_objects=max_objects,
+        )
+
     report = render_debug_report(run) if args.debug else render_safety_report(run)
     print(report)
 
