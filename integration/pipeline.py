@@ -1,4 +1,4 @@
-"""Validated orchestration from Person A's TLE snapshot through Person C."""
+"""Validated orchestration from orbital data through propagation and conjunction analysis."""
 
 from __future__ import annotations
 
@@ -10,6 +10,7 @@ from pathlib import Path
 from typing import Any, Iterable
 
 from collision_engine import OrbitalState, find_closest_approach
+from data_engine.database import create_tables, get_latest_orbital_data
 from orbit_engine import propagate_tle
 from orbit_engine.models import PropagationResult
 
@@ -37,7 +38,7 @@ def _required_string(record: dict[str, Any], field_name: str, context: str) -> s
 
 
 def load_orbital_data(orbital_data_path: str | Path) -> LoadedOrbitalData:
-    """Load and validate Person A's ``orbital_data.json`` snapshot."""
+    """Load and validate an orbital-data JSON snapshot."""
     path = Path(orbital_data_path)
     try:
         with path.open(encoding="utf-8") as file:
@@ -79,6 +80,53 @@ def load_orbital_data(orbital_data_path: str | Path) -> LoadedOrbitalData:
         object_ids.add(object_id)
 
     return LoadedOrbitalData(source, fetched_at, tuple(objects))
+
+
+def load_orbital_data_from_database() -> LoadedOrbitalData:
+    """Load the newest stored TLE record for every object from SQLite.
+
+    SQLite is the primary source for integration because the ingestion/scheduler
+    persists every validated CelesTrak fetch there. The JSON snapshot remains a
+    separate fallback for offline operation.
+    """
+    create_tables()
+    rows = get_latest_orbital_data()
+    if not rows:
+        raise ValueError("SpaceGuard database contains no orbital records")
+
+    objects: list[SatelliteTLE] = []
+    fetched_times: list[datetime] = []
+    object_ids: set[str] = set()
+    for index, row in enumerate(rows):
+        if len(row) != 7:
+            raise ValueError(f"database orbital row {index} has an unexpected shape")
+        object_id, name, line1, line2, epoch, source, fetched_at = row
+        if not all(isinstance(value, str) and value.strip() for value in row):
+            raise ValueError(f"database orbital row {index} contains an invalid value")
+        if object_id in object_ids:
+            raise ValueError(f"duplicate object_id in database latest records: {object_id}")
+        if not line1.startswith("1 ") or not line2.startswith("2 "):
+            raise ValueError(f"database orbital row {index} contains invalid TLE lines")
+        if line1[2:7].strip() != object_id or line2[2:7].strip() != object_id:
+            raise ValueError(f"database orbital row {index} has mismatched catalog IDs")
+
+        objects.append(
+            SatelliteTLE(
+                object_id=object_id,
+                name=name,
+                line1=line1,
+                line2=line2,
+                epoch=_parse_utc_timestamp(epoch, f"database row {index}.epoch"),
+            )
+        )
+        fetched_times.append(_parse_utc_timestamp(fetched_at, f"database row {index}.fetched_at"))
+        object_ids.add(object_id)
+
+    source = "CelesTrak"
+    unique_sources = {row[5] for row in rows}
+    if len(unique_sources) == 1:
+        source = next(iter(unique_sources))
+    return LoadedOrbitalData(source, max(fetched_times), tuple(objects))
 
 
 def generate_shared_timestamps(
@@ -147,8 +195,6 @@ def _propagate_object(
             raise RuntimeError("orbit_engine returned a value that is not a PropagationResult")
         if result.timestamp != timestamp:
             raise RuntimeError("orbit_engine returned a result with an unexpected timestamp")
-        # Satrec.satnum can remove leading zeroes (for example 00900 -> 900).
-        # Retain Person A's source identifier for traceability through Person C.
         normalized_results.append(replace(result, object_id=object_.object_id))
     return tuple(normalized_results)
 
@@ -162,12 +208,42 @@ def run_pipeline(
     max_objects: int = 10,
     object_ids: Iterable[str] | None = None,
 ) -> PipelineRun:
-    """Run Person A's snapshot through Person B and pairwise Person C analysis.
-
-    ``max_objects`` bounds pairwise work. If ``object_ids`` is supplied, those
-    padded source IDs select records in that order, up to ``max_objects``.
-    """
+    """Run a supplied orbital-data source through propagation and conjunction analysis."""
     loaded_data = load_orbital_data(orbital_data_path)
+    return _run_loaded_pipeline(
+        loaded_data, start_time, duration_minutes, step_seconds, max_objects=max_objects, object_ids=object_ids
+    )
+
+
+def run_pipeline_from_database(
+    duration_minutes: float,
+    step_seconds: float,
+    *,
+    max_objects: int = 10,
+    object_ids: Iterable[str] | None = None,
+) -> PipelineRun:
+    """Run the integration pipeline using the newest records stored in SQLite."""
+    loaded_data = load_orbital_data_from_database()
+    # Use the newest ingestion timestamp as the common analysis start time.
+    return _run_loaded_pipeline(
+        loaded_data,
+        loaded_data.fetched_at,
+        duration_minutes,
+        step_seconds,
+        max_objects=max_objects,
+        object_ids=object_ids,
+    )
+
+
+def _run_loaded_pipeline(
+    loaded_data: LoadedOrbitalData,
+    start_time: datetime,
+    duration_minutes: float,
+    step_seconds: float,
+    *,
+    max_objects: int,
+    object_ids: Iterable[str] | None,
+) -> PipelineRun:
     selected_objects = _select_objects(loaded_data.objects, max_objects, object_ids)
     timestamps = generate_shared_timestamps(start_time, duration_minutes, step_seconds)
 
