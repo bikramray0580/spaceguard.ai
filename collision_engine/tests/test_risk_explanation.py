@@ -48,7 +48,7 @@ class RiskExplanationTests(unittest.TestCase):
         self.assertEqual(explain_miss_distance(0.1)["severity"], "VERY HIGH")
         velocity = explain_relative_velocity(12.0)
         self.assertEqual(velocity["severity"], "HIGH")
-        self.assertIn("high relative encounter speed", velocity["reason"])
+        self.assertIn("relative encounter speed is high", velocity["reason"])
         self.assertIn("does not independently determine collision risk", velocity["reason"])
 
     def test_missing_time_to_tca_is_safe_and_explicit(self) -> None:
