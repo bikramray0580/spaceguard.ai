@@ -1,0 +1,212 @@
+/* Orbital object registry — sibling experience to the locked dashboard, same
+   visual system (glass surfaces, starfield, cyan/mint/amber/red semantics),
+   calmer object-discovery + focused-inspection UX. */
+
+.registry-page{position:relative;min-height:100dvh;padding:126px clamp(24px,6vw,112px) 54px;color:#dbe7f4;overflow:hidden;background:radial-gradient(ellipse at 46% 42%,rgba(13,43,78,.25),transparent 31%),radial-gradient(ellipse at 80% 70%,rgba(6,28,50,.16),transparent 30%),#02070d}
+.registry-page:before{content:'';position:absolute;inset:0;pointer-events:none;opacity:.4;background-image:radial-gradient(circle at 8% 19%,#b5d6f7 0 1px,transparent 1.4px),radial-gradient(circle at 22% 72%,#cadff6 0 1px,transparent 1.3px),radial-gradient(circle at 52% 15%,#aacbed 0 1px,transparent 1.3px),radial-gradient(circle at 74% 35%,#c2dbf5 0 1px,transparent 1.4px),radial-gradient(circle at 91% 77%,#a7c5e5 0 1px,transparent 1.4px)}
+.registry-page-heading,.registry-stage{position:relative;z-index:1;max-width:1310px;margin-inline:auto}
+.registry-page-heading{display:flex;align-items:end;justify-content:space-between;margin-bottom:38px}
+.registry-page-heading h1{margin:0;color:#eef5fd;font-size:25px;font-weight:500;letter-spacing:-.035em}
+.registry-page-heading h1:before{content:'SATELLITES';display:block;margin-bottom:8px;color:#71859a;font-size:10px;font-weight:600;letter-spacing:.15em}
+.registry-page-heading p{margin:8px 0 0;color:#8395aa;font-size:13px}
+.registry-page-heading>span{display:flex;align-items:center;gap:8px;color:#8da0b2;font-size:11px;letter-spacing:.04em}
+.registry-page-heading>span i,.tracked i{width:7px;height:7px;border-radius:50%;background:#2fd49b;box-shadow:0 0 8px rgba(47,212,155,.35)}
+
+.registry-stage{display:grid;grid-template-columns:minmax(0,1fr) minmax(330px,370px);gap:52px;align-items:start}
+.registry-surface{min-width:0}
+
+/* Search + filters */
+.registry-tools{display:flex;align-items:center;gap:18px;padding:0 0 18px;border-bottom:1px solid rgba(127,158,190,.15)}
+.registry-tools label{display:flex;align-items:center;gap:10px;min-width:260px;flex:1;padding:11px 13px;border:1px solid rgba(114,157,201,.2);border-radius:11px;color:#83abd5;background:rgba(7,18,30,.5);backdrop-filter:blur(12px)}
+.registry-tools input{width:100%;border:0;outline:0;color:#e9f2fb;background:transparent;font:13px inherit}
+.registry-tools input::placeholder{color:#71849a}
+.registry-filters{display:flex;gap:3px;padding:3px;border:1px solid rgba(119,151,183,.13);border-radius:10px;background:rgba(5,15,25,.4)}
+.registry-filters button{display:flex;gap:5px;align-items:center;padding:7px 8px;border:0;border-radius:7px;color:#7c8fa3;background:transparent;font-size:11px;text-transform:capitalize;cursor:pointer}
+.registry-filters b{color:#62778d;font-weight:500}
+.registry-filters .active{color:#e6f1ff;background:rgba(27,82,147,.45)}
+
+/* Registry list — three legible columns (object, risk, last seen) instead of
+   a dense admin table. Type/tracking state fold into the object's meta line
+   so no column repeats the same value on every row. */
+.registry-list{padding-top:15px}
+.registry-columns,.registry-row{display:grid;grid-template-columns:minmax(200px,1fr) 116px 92px 16px;gap:12px;align-items:center}
+.registry-columns{padding:0 14px 10px;color:#5c718a;font-size:9px;letter-spacing:.12em;text-transform:uppercase}
+.registry-row{width:100%;min-height:68px;padding:0 14px;border:0;border-top:1px solid rgba(133,160,188,.09);color:#899caf;background:transparent;text-align:left;font-size:11px;cursor:pointer;transition:background .24s,color .24s,box-shadow .24s}
+.registry-row:hover{background:rgba(19,48,80,.2);color:#cbd9e7}
+.registry-row.selected{color:#eaf3ff;background:linear-gradient(90deg,rgba(21,79,145,.29),rgba(8,25,43,.03));box-shadow:inset 1px 0 #59a6fb}
+.registry-row svg{color:#5f7288;transition:color .24s,transform .24s}
+.registry-row:hover svg{color:#9db8d8;transform:translateX(2px)}
+.registry-row.selected svg{color:#7cb8ff}
+
+.registry-object{display:grid;grid-template-columns:7px 1fr;gap:3px 11px}
+.registry-object i{grid-row:span 2;width:7px;height:7px;margin-top:4px;border-radius:50%;background:#7bb6fa}
+.registry-object i.elevated{background:#e8b75d}
+.registry-object i.critical{background:#ef7167}
+.registry-object strong{color:#d8e5f2;font-size:13px;font-weight:500}
+.registry-object small{color:#6e8297;font-size:10px}
+
+.registry-seen{justify-self:end;color:#71849a;font-size:10.5px}
+.registry-empty{padding:44px;color:#8193a8;text-align:center}
+
+/* Risk — semantic and unmistakable. Normal stays quiet (plain label, no
+   background); elevated/critical become genuine pills so severity reads at
+   a glance without turning the whole page alarming. */
+.risk-badge{justify-self:start;display:inline-flex;align-items:center;padding:4px 0;border-radius:999px;font-size:10px;font-weight:500;letter-spacing:.03em;line-height:1;white-space:nowrap;color:#8ea0b4;border:1px solid transparent}
+.risk-badge.elevated{padding:5px 10px;color:#f4c274;background:rgba(233,175,80,.13);border-color:rgba(233,175,80,.3)}
+.risk-badge.critical{padding:5px 10px;color:#ff9a90;background:rgba(239,113,103,.16);border-color:rgba(239,113,103,.34)}
+.detail-status .risk-badge{font-size:13px}
+.detail-status .risk-badge.normal{padding:5px 0}
+.detail-status .risk-badge.elevated,.detail-status .risk-badge.critical{padding:6px 13px}
+
+.tracked{display:flex;gap:6px;align-items:center;color:#7eae94;font-size:10px}
+
+/* Selected-object detail — focused inspection state */
+.registry-detail{position:sticky;top:112px;padding:24px;border:1px solid rgba(113,153,194,.22);border-radius:16px;background:linear-gradient(145deg,rgba(8,20,34,.64),rgba(4,12,22,.47));box-shadow:0 24px 58px rgba(0,0,0,.2);backdrop-filter:blur(18px);animation:detail-enter .42s cubic-bezier(.22,.8,.2,1)}
+.detail-top{display:flex;gap:13px;align-items:center}
+.detail-symbol{display:grid;place-items:center;width:44px;height:44px;border:1px solid rgba(86,145,212,.3);border-radius:13px;color:#83bbff;background:rgba(14,55,105,.2)}
+.detail-top p,.detail-top h2,.detail-top small{margin:0}
+.detail-top p{color:#778a9f;font-size:10px}
+.detail-top h2{margin:4px 0;color:#eef5fc;font-size:20px;font-weight:500}
+.detail-top small{color:#7b8fa2;font-size:10px}
+.detail-status{display:flex;justify-content:space-between;align-items:center;margin:22px 0 18px}
+
+.detail-tabs{display:flex;gap:16px;border-bottom:1px solid rgba(132,160,188,.12)}
+.detail-tabs button{padding:0 0 10px;border:0;border-bottom:1px solid transparent;color:#778b9f;background:transparent;font:11px inherit;cursor:pointer;white-space:nowrap}
+.detail-tabs .active{border-color:#57a4ff;color:#e6f1ff}
+
+.detail-body{min-height:126px;padding-top:18px}
+.detail-values{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.detail-values div{display:grid;gap:5px}
+.detail-values span{color:#74889e;font-size:10px}
+.detail-values strong{font-size:14px;font-weight:500}
+
+.detail-orbit{display:grid;gap:18px}
+.orbit-visual{display:grid;justify-items:center;gap:12px;padding:4px 0 2px;color:#7fb9fc}
+.orbit-ring{position:relative;display:grid;place-items:center;width:108px;height:65px;border:1px solid rgba(86,147,210,.36);border-radius:50%;transform:rotate(-17deg)}
+.orbit-ring i{position:absolute;right:15px;top:-5px;width:11px;height:11px;border-radius:50%;background:#dbeeff;box-shadow:0 0 9px #76b6ff}
+.orbit-visual>span{color:#71869c;font-size:10px}
+
+.detail-message{color:#91a3b5;font-size:12px;line-height:1.6}
+.detail-risk .detail-message{margin-bottom:14px}
+.conjunction-pair{display:flex;align-items:center;gap:9px;padding:12px 13px;border:1px solid rgba(239,113,103,.24);border-radius:10px;color:#dbe7f4;background:rgba(70,20,20,.16)}
+.conjunction-pair svg{color:#ff9a90;flex-shrink:0}
+.conjunction-pair span{color:#93a6ba;font-size:11px}
+.conjunction-pair strong{margin-left:auto;color:#eef5fc;font-size:12px;font-weight:500}
+
+.detail-action{display:flex;align-items:center;justify-content:center;gap:8px;margin-top:20px;padding:12px;border:1px solid rgba(100,157,218,.36);border-radius:10px;color:#8fc4ff;background:rgba(14,49,87,.27);text-decoration:none;font-size:12px}
+.detail-action:hover{background:rgba(19,72,128,.42)}
+
+@keyframes detail-enter{from{opacity:0;transform:translate3d(18px,6px,0)}to{opacity:1;transform:translate3d(0,0,0)}}
+
+@media(max-width:1000px){
+  .registry-stage{grid-template-columns:1fr;gap:30px}
+  .registry-detail{position:relative;top:auto;max-width:520px}
+  .registry-page{padding-top:104px}
+}
+@media(max-width:700px){
+  .registry-page{padding:94px 16px 30px}
+  .registry-page-heading{align-items:start;gap:14px;flex-direction:column;margin-bottom:26px}
+  .registry-tools{align-items:stretch;flex-direction:column}
+  .registry-filters{overflow:auto}
+  .registry-columns{display:none}
+  .registry-row{grid-template-columns:minmax(150px,1fr) 100px 16px}
+  .registry-row>span:nth-child(3){display:none}
+  .registry-row svg{grid-column:3}
+  .registry-detail{padding:20px}
+  .detail-tabs{overflow-x:auto}
+}
+
+/* Responsive inspector repair: keep object details from squeezing the registry. */
+.registry-stage:not(.has-selection){grid-template-columns:minmax(0,1fr)}
+
+.detail-close{display:none}
+.detail-backdrop{display:none}
+
+@media(max-width:1180px){
+  .registry-stage.has-selection{grid-template-columns:minmax(0,1fr)}
+
+  .registry-detail{
+    position:fixed;
+    z-index:60;
+    top:96px;
+    right:24px;
+    bottom:24px;
+    width:min(430px,calc(100vw - 48px));
+    max-height:none;
+    overflow-y:auto;
+    margin:0;
+  }
+
+  .detail-backdrop{
+    display:block;
+    position:fixed;
+    z-index:55;
+    inset:0;
+    width:100%;
+    height:100%;
+    padding:0;
+    border:0;
+    background:rgba(0,5,10,.46);
+    backdrop-filter:blur(2px);
+    -webkit-backdrop-filter:blur(2px);
+    cursor:pointer;
+  }
+
+  .detail-close{
+    display:grid;
+    place-items:center;
+    width:32px;
+    height:32px;
+    margin-left:auto;
+    flex:0 0 auto;
+    border:1px solid rgba(105,140,172,.16);
+    border-radius:9px;
+    color:#72879c;
+    background:rgba(9,24,39,.58);
+    cursor:pointer;
+    transition:color .18s ease,border-color .18s ease,background .18s ease;
+  }
+
+  .detail-close:hover{
+    color:#e0ebf5;
+    border-color:rgba(99,153,204,.35);
+    background:rgba(14,39,61,.68);
+  }
+}
+
+@media(max-width:700px){
+  .registry-detail{
+    top:78px;
+    right:10px;
+    bottom:10px;
+    width:calc(100vw - 20px);
+    padding:18px;
+    border-radius:14px;
+  }
+
+  .detail-top{align-items:flex-start}
+
+  .detail-top h2{font-size:19px}
+
+  .detail-status{margin:17px 0 15px}
+
+  .detail-values{gap:14px 18px}
+}
+
+@media(prefers-reduced-motion:reduce){
+  .registry-detail,
+  .registry-row,
+  .detail-action,
+  .detail-close{animation:none!important;transition:none!important}
+}
+
+.registry-source{justify-self:start;color:#7f95aa;font-size:10px}
+.registry-system-state{display:grid;gap:5px;margin:15px 0;padding:13px 14px;border:1px solid rgba(239,113,103,.22);border-radius:10px;color:#cfdbe8;background:rgba(65,19,24,.14)}
+.registry-system-state strong{font-size:11px;font-weight:500}
+.registry-system-state span{color:#8e9eb0;font-size:10px;line-height:1.5}
+.registry-loading{padding:38px 14px;color:#8195a9;font-size:12px}
+.risk-badge.unclassified{padding:5px 10px;color:#9bb0c2;background:rgba(117,145,170,.1);border-color:rgba(117,145,170,.18)}
+.registry-page-heading>span i.loading{background:#e5b65e;box-shadow:0 0 8px rgba(229,182,94,.25);animation:registry-pulse 1.4s ease-in-out infinite}
+.registry-page-heading>span i.offline{background:#ef7167;box-shadow:0 0 8px rgba(239,113,103,.24)}
+@keyframes registry-pulse{50%{opacity:.35;transform:scale(.8)}}
+@media(max-width:700px){.registry-source{display:none}.registry-row{grid-template-columns:minmax(150px,1fr) 100px 16px}}

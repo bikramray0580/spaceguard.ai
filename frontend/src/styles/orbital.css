@@ -1,0 +1,6 @@
+.orbital-canvas { cursor: grab; }
+.orbital-canvas:active { cursor: grabbing; }
+.orbital-canvas > .orbital-canvas-root { position: absolute !important; inset: 0; width: 100% !important; height: 100% !important; touch-action: none; }
+.orbital-canvas canvas { width: 100% !important; height: 100% !important; }
+.orbital-canvas .canvas-topline, .orbital-canvas .canvas-legend, .orbital-canvas .canvas-notice, .orbital-canvas .selected-overlay { pointer-events: none; }
+.orbital-label { display: block; padding: 3px 5px; border: 1px solid #4ec9d8; color: #e6fbff; background: #07141ccc; font: 700 8px ui-monospace, monospace; white-space: nowrap; letter-spacing: .06em; pointer-events: none; }

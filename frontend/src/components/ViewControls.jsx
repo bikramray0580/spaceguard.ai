@@ -1,0 +1,2 @@
+import { Globe2, Settings2 } from 'lucide-react'
+export default function ViewControls() { return <div className="view-controls" aria-label="Visualization controls"><button type="button" aria-label="Globe view"><Globe2 size={18} strokeWidth={1.5}/></button><button type="button">2D</button><button type="button" className="is-active">3D</button><button type="button" aria-label="Visualization settings"><Settings2 size={17} strokeWidth={1.5}/></button></div> }

@@ -1,0 +1,11 @@
+{
+  "version": 1,
+  "skills": {
+    "design-md": {
+      "source": "arumwu/design-md-skill",
+      "sourceType": "github",
+      "skillPath": "SKILL.md",
+      "computedHash": "6459364cb7fb1afd16c7f521314ca153fd44f174af7d116f2f0341826a0e1a0b"
+    }
+  }
+}

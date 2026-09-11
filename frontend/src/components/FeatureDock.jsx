@@ -1,0 +1,3 @@
+import { BarChart3, Crosshair, Radar, Satellite, ScanSearch } from 'lucide-react'
+const features = [['track', 'Track', Satellite], ['risk', 'Risk', Crosshair], ['simulate', 'Simulate', ScanSearch], ['analytics', 'Analytics', BarChart3], ['intel', 'Intel', Radar]]
+export default function FeatureDock({ activePanel, onSelect }) { return <nav className="feature-dock" aria-label="Mission tools">{features.map(([id, label, Icon]) => <button key={id} type="button" className={`dock-action ${activePanel === id ? 'is-active' : ''}`} onClick={() => onSelect(activePanel === id ? null : id)} aria-pressed={activePanel === id}><span><Icon size={22} strokeWidth={1.55}/></span><small>{label}</small></button>)}</nav> }
